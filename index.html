@@ -359,7 +359,7 @@
             margin-top: 8px;
         }
 
-        /* ── Location (scene) ── */
+        /* ── Location ── */
         .location {
             padding: 70px 0 80px;
             border-bottom: 1px solid rgba(245, 237, 228, 0.06);
@@ -616,6 +616,44 @@
             transform: scale(1.01);
         }
 
+        .contact-form button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ── Toast / success message ── */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #2d4a3b;
+            color: #f5ede4;
+            padding: 16px 32px;
+            border-radius: 60px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            z-index: 999;
+            pointer-events: none;
+            border: 1px solid rgba(196, 155, 122, 0.2);
+            max-width: 90vw;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+
+        .toast.error {
+            background: #6b2e2e;
+        }
+
         /* ── Footer ── */
         footer {
             border-top: 1px solid rgba(245, 237, 228, 0.06);
@@ -734,6 +772,12 @@
                 width: 100%;
                 justify-content: center;
             }
+            .toast {
+                width: 90%;
+                text-align: center;
+                font-size: 0.85rem;
+                padding: 14px 20px;
+            }
         }
 
         @media (max-width: 440px) {
@@ -820,14 +864,13 @@
         </div>
     </section>
 
-    <!-- ═══ LOCATION / SCENE SECTION ═══ -->
+    <!-- ═══ LOCATION ═══ -->
     <section class="location" id="location">
         <div class="container">
             <h2 class="section-title">Find <span style="color:#c49b7a;">Us</span></h2>
             <p class="section-sub">Visit our cozy chocolate haven in the heart of Surat.</p>
 
             <div class="location-wrap">
-                <!-- Google Maps embed -->
                 <div class="location-map">
                     <iframe
                     src="https://www.google.com/maps?q=107+Sneh+Vatika+Apartments,+Khapatia+Chakla,+Gopipura,+Surat,+Gujarat+395001&output=embed&z=16"
@@ -838,7 +881,6 @@
                 </iframe>
             </div>
 
-            <!-- Location details -->
             <div class="location-info">
                 <div class="loc-headline">
                     🏠 <span>Nancy's</span> Chocolate Studio
@@ -868,39 +910,35 @@
             <h2>Let's <span>Connect</span></h2>
             <p>Have a question about our chocolates or want to place a custom order? We'd love to hear from you.</p>
             <div class="contact-details">
-
-                <!-- ✉ Email -->
                 <div class="item">
                     <span class="emoji">✉</span>
                     <a href="mailto:nainavaidya99@gmail.com">nainavaidya99@gmail.com</a>
                 </div>
-
-                <!-- 📞 Phone -->
                 <div class="item">
                     <span class="emoji">📞</span>
                     <a href="tel:+918160628804">8160628804</a>
                 </div>
-
-                <!-- 📍 Address with Google Maps link -->
                 <div class="item">
-                    <span class="emoji">📍</span>
                     <a class="map-link" href="https://www.google.com/maps?q=107+Sneh+Vatika+Apartments,+Khapatia+Chakla,+Gopipura,+Surat,+Gujarat+395001" target="_blank" rel="noopener noreferrer">
                         <span class="pin">📍</span>
                         107 Sneh Vatika Apartments, Khapatia Chakla, Gopipura, Surat, Gujarat 395001
                     </a>
                 </div>
-
-                <!-- 🕊 Hours -->
                 <div class="item">
                     <span class="emoji">🕊</span>
                     <span>Mon – Sat · 10am – 7pm</span>
                 </div>
-
             </div>
         </div>
 
-        <!-- ── Contact Form (mailto) ── -->
-        <form class="contact-form" id="contactForm">
+        <!-- ── Contact Form – works on file://, localhost, and GitHub Pages ── -->
+        <form class="contact-form" id="contactForm" action="https://formsubmit.co/modimeghan1993@gmail.com" method="POST">
+
+            <!-- Hidden fields for FormSubmit -->
+            <input type="hidden" name="_captcha" value="false" />
+            <input type="hidden" name="_subject" value="🍫 New message from Nancy's Chocolate" />
+            <!-- _next is set dynamically via JavaScript -->
+
             <label for="name">Your name</label>
             <input type="text" id="name" name="name" placeholder="e.g. Marie" required />
 
@@ -915,6 +953,9 @@
     </div>
 </section>
 
+<!-- Toast notification -->
+<div class="toast" id="toast">✅ Your message was sent successfully!</div>
+
 <footer>
     <div class="container">&copy; 2026 <span>Nancy</span> · Homemade Dark Chocolate</div>
 </footer>
@@ -922,45 +963,104 @@
 <script>
     (function() {
         const form = document.getElementById('contactForm');
+        const btn = document.getElementById('sendBtn');
+        const toast = document.getElementById('toast');
 
+        // ── Show toast ──
+        function showToast(msg, isError = false) {
+            toast.textContent = msg;
+            toast.className = 'toast' + (isError ? ' error' : '');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 5000);
+        }
+
+        // ── On page load: check if we returned from FormSubmit with success ──
+        (function checkForSuccess() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const success = urlParams.get('success');
+            const error = urlParams.get('error');
+
+            // Remove the query params from URL without page reload
+            if (success === 'true') {
+                showToast('✅ Your message was sent successfully!');
+                // Clean URL
+                const cleanUrl = window.location.pathname + window.location.hash;
+                if (history.replaceState) {
+                    history.replaceState(null, '', cleanUrl);
+                }
+            } else if (error === 'true') {
+                showToast('❌ Something went wrong. Please try again.', true);
+                const cleanUrl = window.location.pathname + window.location.hash;
+                if (history.replaceState) {
+                    history.replaceState(null, '', cleanUrl);
+                }
+            }
+        })();
+
+        // ── Set dynamic _next URL (points back to this page with success flag) ──
+        function setNextUrl() {
+            // Build the current page URL without any existing query params
+            const baseUrl = window.location.origin + window.location.pathname;
+            // If we're on file://, window.location.origin is "file://" or "null"
+            // In that case, use the full href without query
+            let currentUrl = window.location.href.split('?')[0];
+            // If it's file://, keep it simple
+            if (currentUrl.startsWith('file://')) {
+                // For file://, we need to add the success param manually
+                // But file:// URLs with query params work fine.
+                // We'll just use the full path.
+                currentUrl = window.location.href.split('?')[0];
+            }
+            // Set the _next input
+            let nextInput = form.querySelector('input[name="_next"]');
+            if (!nextInput) {
+                nextInput = document.createElement('input');
+                nextInput.type = 'hidden';
+                nextInput.name = '_next';
+                form.appendChild(nextInput);
+            }
+            // If we're on a hosted site, use the base URL; for file:// use the current file path
+            const nextUrl = currentUrl + '?success=true';
+            nextInput.value = nextUrl;
+        }
+        setNextUrl();
+
+        // ── Form submission ──
         form.addEventListener('submit', function(e) {
-            e.preventDefault();
-
             const name = document.getElementById('name').value.trim();
             const email = document.getElementById('email').value.trim();
             const message = document.getElementById('message').value.trim();
 
+            // Validation
             if (!name || !email || !message) {
-                alert('Please fill in all fields.');
+                e.preventDefault();
+                showToast('⚠️ Please fill in all fields.', true);
                 return;
             }
             const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailPattern.test(email)) {
-                alert('Please enter a valid email address.');
+                e.preventDefault();
+                showToast('⚠️ Please enter a valid email address.', true);
                 return;
             }
 
-            const recipient = "nainavaidya99@gmail.com";
-            const subject = "New message from Nancy's Chocolate";
-            const body = `Name: ${name}\nEmail: ${email}\nMessage: ${message}`;
-
-            window.location.href =
-                `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-            const btn = document.getElementById('sendBtn');
-            const originalText = btn.textContent;
-            btn.textContent = '✓ Opening Email...';
+            // Show sending state
+            btn.textContent = '⏳ Sending...';
+            btn.disabled = true;
             btn.style.background = '#5b8c6f';
             btn.style.color = '#f5ede4';
-            setTimeout(() => {
-                btn.textContent = originalText;
-                btn.style.background = '';
-                btn.style.color = '';
-                form.reset();
-            }, 4000);
+
+            // The form submits normally to FormSubmit.
+            // After submission, the browser will be redirected to _next URL (with ?success=true)
+            // The page will reload and the toast will appear.
+            // No need to prevent default – let it submit.
+            // But we want to prevent double submission.
+            // We'll let it go.
         });
 
-        // Smooth nav scrolling
+        // ── Smooth nav scrolling ──
         document.querySelectorAll('nav a').forEach(link => {
             link.addEventListener('click', function(e) {
                 const targetId = this.getAttribute('href');
@@ -971,6 +1071,20 @@
                 }
             });
         });
+
+        // ── If the form submission fails (e.g., network error), we handle it via error param ──
+        // FormSubmit automatically redirects to _next on success.
+        // If there's an error, it shows its own error page.
+        // We could also set _next to a custom error page, but we'll keep it simple.
+
+        // For a more robust solution, we could also use fetch with a fallback to standard POST.
+        // But the standard POST with _next redirect is the most reliable across all environments.
+
+        // ── Clean up the success param if it exists on page load (already done above) ──
+
+        // ── If the user manually refreshes after success, we don't want to show toast again ──
+        // The URL cleanup above removes the ?success=true param, so refreshing won't show it again.
+        // But if the user navigates back, the param might reappear. This is fine.
 
     })();
 </script>
